@@ -8,13 +8,15 @@
 
 import UIKit
 import CoreData
+import RealmSwift
 
 class CategoryViewController: UITableViewController {
 
-    var categories = [Category]()
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-
-
+    //    MARK: REALMSWIFT initialize the realm
+    let realm = try! Realm()
+    
+    //    MARK: REALMSWIFT this categories var will get the results every time realm is queried
+    var categories : Results<Category>?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,16 +26,17 @@ class CategoryViewController: UITableViewController {
     
     //MARK: - Tableview Datasource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories.count
+        //  If categories is null will return 1
+        return categories?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         
-        let item = categories[indexPath.row]
+        let item = categories?[indexPath.row].name ?? "No Categories Added Yet"
         
-        cell.textLabel?.text = item.name
+        cell.textLabel?.text = item
         
 //        cell.accessoryType = item.done  ? .checkmark : .none
         
@@ -61,15 +64,15 @@ class CategoryViewController: UITableViewController {
             //what will happen once the user clicks the Add Item button on our UIALERT
             
             
-            let newCategory = Category(context: self.context)
+            let newCategory = Category()
             newCategory.name = textField.text!
 //            newItem.done = false
             
-            self.categories.append(newCategory)//        once selected, it gets a checkmark
+//            self.categories.append(newCategory)//        once selected, it gets a checkmark
             
             //            self.defaults.set(self.itemArray, forKey: "TodoListArray")
             
-            self.saveCategories()
+            self.save(category: newCategory)
         }
         
         alert.addTextField { (alertTextField) in
@@ -81,21 +84,20 @@ class CategoryViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     
-    func loadCategories(with request: NSFetchRequest<Category> = Category.fetchRequest()) {
+    func loadCategories() {
+        //    MARK: REALMSWIFT
+        //      this statement will retrieve all the categories of the realm
+        categories = realm.objects(Category.self)
         
-        //            let request : NSFetchRequest<Item> = Item.fetchRequest()
-        do {
-            categories = try context.fetch(request)
-        } catch {
-            print ("Error fetching data from context \(error)")
-        }
         tableView.reloadData()
     }
-    
-    func saveCategories() {
-        
+
+    func save(category : Category) {
+        //        MARK: REALMSWIFT
         do {
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
         } catch {
             print ("Error saving Category \(error)")
         }
@@ -113,7 +115,7 @@ class CategoryViewController: UITableViewController {
         
 //        get the selected
         if let indexPath = tableView.indexPathForSelectedRow {
-            destinationVC.selectedCategory = categories[indexPath.row]
+            destinationVC.selectedCategory = categories?[indexPath.row]
         }
     }
 }
